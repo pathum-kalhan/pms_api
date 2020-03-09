@@ -52,6 +52,42 @@ router.get('/', checkAuth, async (req, res) => {
   }
 });
 
+router.get('/:id', checkAuth, async (req, res) => {
+  try {
+    const data = await db.attendance.findOne();
+
+    res.status(200).json(data);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
+
+router.put('/:id', checkAuth, async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    await db.attendance.update(req.body, {
+      where: {
+        id: req.params.id,
+      },
+      transaction,
+    });
+
+    // ADD AUDIT
+    await db.audit.create({
+      action: 'Update',
+      area: 'attendance',
+      description: `Updated in ${req.params.id}`,
+      userId: req.user.id,
+      reference: req.params.id,
+    }, { transaction });
+    await transaction.commit();
+    res.sendStatus(200);
+  } catch (error) {
+    await transaction.rollback();
+    res.sendStatus(500);
+  }
+});
+
 router.delete('/:id', checkAuth, async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
