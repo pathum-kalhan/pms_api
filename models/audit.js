@@ -29,7 +29,9 @@ module.exports = (sequelize, DataTypes) => {
     },
   }, {});
   audit.associate = function (models) {
-    // associations can be defined here
+    audit.belongsTo(models.user, {
+      foreignKey: 'userId',
+    });
   };
   return audit;
 };

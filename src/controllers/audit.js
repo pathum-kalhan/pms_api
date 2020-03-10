@@ -12,6 +12,8 @@ router.get('/', checkAuth, async (req, res) => {
         model: db.user,
         attributes: ['title', 'firstName', 'lastName', 'fullName'],
       }],
+      order: [['id', 'DESC']],
+      limit: 100,
     });
 
 

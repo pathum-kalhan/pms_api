@@ -38,48 +38,77 @@ router.post('/login', async (req, res) => {
       return res.sendStatus(401);
     }
 
+
     let token = jwt.sign({ id: isUserValid.id }, process.env.JWT_KEY);
     token = `Bearer ${token}`;
 
-    return res.status(200).json({ token, role: isUserValid.role, name: isUserValid.fullName });
+    const name = `${isUserValid.title}
+  ${isUserValid.firstName} ${isUserValid.lastName}`;
+
+    return res.status(200).json({ token, role: isUserValid.role, name });
   } catch (error) {
     return res.sendStatus(500);
   }
 });
 
-router.put('/', checkAuth, async (req, res) => {
+router.put('/:id', checkAuth, async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+
   try {
-    const {
-      title, firstName, lastName,
-    } = req.body;
-    await db.User.findOneAndUpdate({ _id: req.user.id }, {
-      title, firstName, lastName,
+    const { id } = req.params;
+
+    await db.user.update(req.body, {
+      where: {
+        id,
+      },
+      transaction,
     });
+    // ADD AUDIT
+    await db.audit.create({
+      action: 'Update',
+      area: 'user',
+      description: `Updated in ${id}`,
+      userId: req.user.id,
+      reference: id,
+    }, { transaction });
+    await transaction.commit();
     res.sendStatus(200);
   } catch (error) {
+    await transaction.rollback();
+
     res.sendStatus(500);
   }
 });
 
-router.put('/updateStatus', checkAuth, async (req, res) => {
-  try {
-    const { _id, status } = req.body;
+router.put('/status', checkAuth, async (req, res) => {
+  const transaction = await db.sequelize.transaction();
 
-    const User = await db.User.findOne({ _id: req.user.id, $or: [{ status: 'verified' }, { status: 'pending' }] });
-    if (!User) {
-      return res.status(422).json('Admin user not found.');
-    }
-    const { role } = User;
-    if (role === 'partner') {
-      // He can change status only for his staff;
-      await db.User.findOneAndUpdate({ partnerId: req.user.id, _id }, { status });
-    }
-    if (role === 'admin') {
-      await db.User.findOneAndUpdate({ _id }, { status });
-    }
-    return res.sendStatus(200);
+  try {
+    const { id, status } = req.body;
+
+    await db.user.update({
+      status,
+    }, {
+      where: {
+        id,
+      },
+      transaction,
+    });
+
+    // ADD AUDIT
+    await db.audit.create({
+      action: 'Update',
+      area: 'user',
+      description: `Updated status to ${status} in ${id}`,
+      userId: req.user.id,
+      reference: id,
+    }, { transaction });
+    await transaction.commit();
+    res.sendStatus(200);
   } catch (error) {
-    return res.sendStatus(500);
+    await transaction.rollback();
+
+    res.sendStatus(500);
   }
 });
 
@@ -91,6 +120,20 @@ router.get('/', async (req, res) => {
         email: {
           [Op.ne]: 'admin@system.com',
         },
+      },
+    });
+
+    res.status(200).json(data);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
+
+router.get('/:id', checkAuth, async (req, res) => {
+  try {
+    const data = await db.user.findOne({
+      where: {
+        id: req.params.id,
       },
     });
 

@@ -69,6 +69,7 @@ router.put('/:id', checkAuth, async (req, res) => {
       where: {
         id: req.params.id,
       },
+
       transaction,
     });
 
