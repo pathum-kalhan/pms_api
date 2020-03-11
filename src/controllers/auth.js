@@ -50,33 +50,42 @@ router.post('/login', async (req, res) => {
     return res.sendStatus(500);
   }
 });
-
-router.put('/:id', checkAuth, async (req, res) => {
-  const transaction = await db.sequelize.transaction();
-
+router.put('/changePassword', checkAuth, async (req, res) => {
   try {
-    const { id } = req.params;
-
-    await db.user.update(req.body, {
+    // 1. check whether user exists and active
+    const isUserExist = await db.user.findOne({
       where: {
-        id,
+        id: req.user.id,
       },
-      transaction,
     });
-    // ADD AUDIT
-    await db.audit.create({
-      action: 'Update',
-      area: 'user',
-      description: `Updated in ${id}`,
-      userId: req.user.id,
-      reference: id,
-    }, { transaction });
-    await transaction.commit();
-    res.sendStatus(200);
-  } catch (error) {
-    await transaction.rollback();
 
-    res.sendStatus(500);
+    // if not exist
+    if (!isUserExist) {
+      return res.status(422).json("User doesn't exists!");
+    }
+
+    // 2. check whether password matches or not
+    const isMatch = bcrypt.compareSync(req.body.oldPassword, isUserExist.password);
+    if (!isMatch) {
+      return res.status(422).json('Old password doesn\'t matches!');
+    }
+
+    // hash the password using bcrypt lib
+    const salt = bcrypt.genSaltSync(10);
+    req.body.newPassword = bcrypt.hashSync(req.body.newPassword, salt);
+
+    await db.user.update({
+      password: req.body.newPassword,
+    },
+    {
+      where: {
+        id: req.user.id,
+      },
+    });
+
+    return res.sendStatus(200);
+  } catch (error) {
+    return res.sendStatus(500);
   }
 });
 
@@ -100,6 +109,35 @@ router.put('/status', checkAuth, async (req, res) => {
       action: 'Update',
       area: 'user',
       description: `Updated status to ${status} in ${id}`,
+      userId: req.user.id,
+      reference: id,
+    }, { transaction });
+    await transaction.commit();
+    res.sendStatus(200);
+  } catch (error) {
+    await transaction.rollback();
+
+    res.sendStatus(500);
+  }
+});
+
+router.put('/:id', checkAuth, async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+
+  try {
+    const { id } = req.params;
+
+    await db.user.update(req.body, {
+      where: {
+        id,
+      },
+      transaction,
+    });
+    // ADD AUDIT
+    await db.audit.create({
+      action: 'Update',
+      area: 'user',
+      description: `Updated in ${id}`,
       userId: req.user.id,
       reference: id,
     }, { transaction });
@@ -154,20 +192,5 @@ router.get('/me', checkAuth, async (req, res) => {
   }
 });
 
-
-router.post('/forgotPassword', async (req, res) => {
-  try {
-    //  check email exists
-    const user = await db.User.findOne({ email: req.body.email });
-    if (!user) {
-      return res.sendStatus(401);
-    }
-
-
-    res.sendStatus(200);
-  } catch (error) {
-    res.sendStatus(500);
-  }
-});
 
 module.exports = router;

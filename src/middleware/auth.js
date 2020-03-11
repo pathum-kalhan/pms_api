@@ -9,15 +9,16 @@ module.exports = async (req, res, next) => {
     req.user = decoded;
     // const { id } = req.user;
 
-    // user.update({
-    //   where: {
-    //     id:null
-    //   }
-    // })
+    db.user.update(
+      { lastSeen: new Date() },
+      {
+        where: {
+          id: decoded.id,
+        },
+      },
+    );
     next();
   } catch (error) {
-    return res.status(401).json({
-      message: 'Auth failed',
-    });
+    res.sendStatus(401);
   }
 };

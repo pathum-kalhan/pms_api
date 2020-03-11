@@ -3,6 +3,7 @@ const express = require('express');
 
 const app = express();
 const cors = require('cors');
+const Sequelize = require('sequelize');
 
 app.use(cors());
 const morgan = require('morgan');
@@ -19,7 +20,6 @@ const routes = require('./src/controllers/index');
 routes.forEach(([name, handler]) => app.use(`/${name}`, handler));
 
 const port = process.env.PORT || 5000;
-const Sequelize = require('sequelize');
 
 const sequelize = new Sequelize(process.env.DB, process.env.USER, process.env.PASSWORD, {
   host: 'localhost',
