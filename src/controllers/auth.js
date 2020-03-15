@@ -51,6 +51,8 @@ router.post('/login', async (req, res) => {
   }
 });
 router.put('/changePassword', checkAuth, async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+
   try {
     // 1. check whether user exists and active
     const isUserExist = await db.user.findOne({
@@ -81,10 +83,23 @@ router.put('/changePassword', checkAuth, async (req, res) => {
       where: {
         id: req.user.id,
       },
+      transaction,
     });
+
+    // ADD AUDIT
+    await db.audit.create({
+      action: 'Update',
+      area: 'user',
+      description: `Updated password in ${req.user.id}`,
+      userId: req.user.id,
+      reference: req.user.id,
+    }, { transaction });
+    await transaction.commit();
 
     return res.sendStatus(200);
   } catch (error) {
+    await transaction.rollback();
+
     return res.sendStatus(500);
   }
 });
