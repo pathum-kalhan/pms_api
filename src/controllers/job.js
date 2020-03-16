@@ -10,6 +10,17 @@ router.post('/', checkAuth, async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
   try {
+    // CHECK JOB EXISTS
+    const isExists = await db.job.findOne({
+      where: {
+        name: req.body.name,
+      },
+    });
+
+    if (isExists) {
+      await transaction.commit();
+      return res.status(422).json('Job already exists!');
+    }
     const data = await db[modelName].create(req.body, { transaction });
 
     await db.audit.create({
@@ -21,11 +32,11 @@ router.post('/', checkAuth, async (req, res) => {
     }, { transaction });
     await transaction.commit();
 
-    res.sendStatus(200);
+    return res.sendStatus(200);
   } catch (error) {
     await transaction.rollback();
 
-    res.sendStatus(500);
+    return res.sendStatus(500);
   }
 });
 

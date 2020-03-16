@@ -22,8 +22,6 @@ module.exports = (sequelize, DataTypes) => {
     createdDate: {
       type: DataTypes.VIRTUAL,
       get() {
-        // const name = `${this.getDataValue('title')} ${this.getDataValue('firstName')} ${this.getDataValue('lastName')}`;
-        // return name;
         const d = moment(this.getDataValue('createdAt')).format('YYYY-MM-DD hh:mm:ss A');
         return d;
       },
@@ -31,8 +29,6 @@ module.exports = (sequelize, DataTypes) => {
     updatedDate: {
       type: DataTypes.VIRTUAL,
       get() {
-        // const name = `${this.getDataValue('title')} ${this.getDataValue('firstName')} ${this.getDataValue('lastName')}`;
-        // return name;
         const d = moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD hh:mm:ss A');
         return d;
       },
