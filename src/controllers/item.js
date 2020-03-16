@@ -10,6 +10,19 @@ router.post('/', checkAuth, async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
   try {
+    // CHECK ATTENDANCE MARKED ALREADY
+    const isExists = await db.item.findOne({
+      where: {
+        name: req.body.name,
+        unit: req.body.unit,
+
+      },
+    });
+
+    if (isExists) {
+      await transaction.commit();
+      return res.status(422).json('Item already exists!');
+    }
     const data = await db[modelName].create(req.body, { transaction });
 
     await db.audit.create({
@@ -21,17 +34,19 @@ router.post('/', checkAuth, async (req, res) => {
     }, { transaction });
     await transaction.commit();
 
-    res.sendStatus(200);
+    return res.sendStatus(200);
   } catch (error) {
     await transaction.rollback();
 
-    res.sendStatus(500);
+    return res.sendStatus(500);
   }
 });
 
 router.get('/', checkAuth, async (req, res) => {
   try {
-    const data = await db[modelName].findAll();
+    const data = await db[modelName].findAll({
+      attributes: ['name', 'id', 'status', 'description', 'unit', 'createdDate', 'updatedDate'],
+    });
     res.status(200).json(data);
   } catch (error) {
     res.sendStatus(500);
@@ -72,7 +87,7 @@ router.put('/status', checkAuth, async (req, res) => {
     // ADD AUDIT
     await db.audit.create({
       action: 'Update',
-      area: 'job',
+      area: 'item',
       description: `Updated status to ${status} in ${id}`,
       userId: req.user.id,
       reference: id,
@@ -99,9 +114,9 @@ router.put('/:id', checkAuth, async (req, res) => {
     });
 
     await db.audit.create({
-      area: 'job',
+      area: 'item',
       action: 'Update',
-      description: `Update job in ${id}`,
+      description: `Update item in ${id}`,
       userId: req.user.id,
       refId: id,
     }, { transaction });

@@ -1,6 +1,4 @@
 
-const moment = require('moment');
-
 module.exports = (sequelize, DataTypes) => {
   const attendance = sequelize.define('attendance', {
     userId: {

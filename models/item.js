@@ -1,3 +1,4 @@
+const moment = require('moment');
 
 module.exports = (sequelize, DataTypes) => {
   const item = sequelize.define('item', {
@@ -17,6 +18,24 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+    },
+    createdDate: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        // const name = `${this.getDataValue('title')} ${this.getDataValue('firstName')} ${this.getDataValue('lastName')}`;
+        // return name;
+        const d = moment(this.getDataValue('createdAt')).format('YYYY-MM-DD hh:mm:ss A');
+        return d;
+      },
+    },
+    updatedDate: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        // const name = `${this.getDataValue('title')} ${this.getDataValue('firstName')} ${this.getDataValue('lastName')}`;
+        // return name;
+        const d = moment(this.getDataValue('updatedAt')).format('YYYY-MM-DD hh:mm:ss A');
+        return d;
+      },
     },
   }, {});
   item.associate = function (models) {
