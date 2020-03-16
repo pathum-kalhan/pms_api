@@ -1,4 +1,6 @@
 
+const moment = require('moment');
+
 module.exports = (sequelize, DataTypes) => {
   const attendance = sequelize.define('attendance', {
     userId: {
@@ -28,6 +30,20 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
 
     },
+    // checkInF: {
+    //   type: DataTypes.VIRTUAL,
+    //   get() {
+    //     const t = moment(this.getDataValue('checkIn'), 'HHmm').format('HH:mm A');
+    //     return t;
+    //   },
+    // },
+    // checkOutF: {
+    //   type: DataTypes.VIRTUAL,
+    //   get() {
+    //     const t = moment(this.getDataValue('checkOut'), 'HHmm').format('HH:mm A');
+    //     return t;
+    //   },
+    // },
   }, {});
   attendance.associate = function (models) {
     attendance.belongsTo(models.user, {

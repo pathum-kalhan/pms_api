@@ -1,3 +1,4 @@
+const moment = require('moment');
 
 module.exports = (sequelize, DataTypes) => {
   const audit = sequelize.define('audit', {
@@ -26,6 +27,15 @@ module.exports = (sequelize, DataTypes) => {
     reference: {
       type: DataTypes.STRING,
 
+    },
+    createdDate: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        // const name = `${this.getDataValue('title')} ${this.getDataValue('firstName')} ${this.getDataValue('lastName')}`;
+        // return name;
+        const d = moment(this.getDataValue('createdAt')).format('YYYY-MM-DD hh:mm:ss A');
+        return d;
+      },
     },
   }, {});
   audit.associate = function (models) {

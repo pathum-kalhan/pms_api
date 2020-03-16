@@ -1,5 +1,6 @@
 const express = require('express');
 
+const moment = require('moment');
 
 const router = express.Router();
 const checkAuth = require('../middleware/auth');
@@ -8,6 +9,20 @@ const db = require('../../models');
 router.post('/', checkAuth, async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
+    // CHECK ATTENDANCE MARKED ALREADY
+    const isMarked = await db.attendance.findOne({
+      where: {
+        userId: req.body.userId,
+        attendanceDate: req.body.attendanceDate,
+        site: req.body.site,
+      },
+    });
+
+    if (isMarked) {
+      await transaction.commit();
+      return res.status(422).json('Already marked for this user!');
+    }
+
     const data = await db.attendance.create(req.body, { transaction });
 
     // ADD AUDIT
@@ -20,17 +35,18 @@ router.post('/', checkAuth, async (req, res) => {
     }, { transaction });
     await transaction.commit();
 
-    res.sendStatus(200);
+    return res.sendStatus(200);
   } catch (error) {
     await transaction.rollback();
 
-    res.sendStatus(500);
+    return res.sendStatus(500);
   }
 });
 
 function mapHoursDiff(element) {
   const e = element;
-
+  e.checkIn = (moment(e.checkIn, 'HHmm').format('hh:mm A'));
+  e.checkOut = (moment(e.checkOut, 'HHmm').format('hh:mm A'));
   e.fullName = `${e['user.title']} ${e['user.firstName']} ${e['user.lastName']}`;
   return e;
 }
@@ -43,8 +59,11 @@ router.get('/', checkAuth, async (req, res) => {
         model: db.user,
         attributes: ['title', 'firstName', 'lastName', 'fullName'],
       }],
+      order: [['id', 'DESC']],
+      limit: 100,
     });
     data = data.map(mapHoursDiff);
+
 
     res.status(200).json(data);
   } catch (error) {
