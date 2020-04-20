@@ -205,6 +205,24 @@ router.get('/me', checkAuth, async (req, res) => {
   } catch (error) {
     res.sendStatus(500);
   }
+}); router.post('/report', async (req, res) => {
+  try {
+    const { orderBy, roles, status } = req.body;
+    const query = `SELECT * FROM users WHERE role IN (:roles) ${status !== 'All' ? `AND ${status}` : ''}
+    ORDER BY ${orderBy};`;
+
+    const data = await db.sequelize.query(query,
+      {
+        replacements: { roles },
+
+        type: db.sequelize.QueryTypes.SELECT,
+      });
+
+
+    res.status(200).json(data);
+  } catch (error) {
+    res.sendStatus(500);
+  }
 });
 
 

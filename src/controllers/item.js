@@ -10,7 +10,7 @@ router.post('/', checkAuth, async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
   try {
-    // CHECK ATTENDANCE MARKED ALREADY
+    // CHECK ITEM MARKED ALREADY
     const isExists = await db.item.findOne({
       where: {
         name: req.body.name,
