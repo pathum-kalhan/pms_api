@@ -131,4 +131,26 @@ router.put('/:id', checkAuth, async (req, res) => {
   }
 });
 
+router.post('/report', async (req, res) => {
+  try {
+    const {
+      orderBy, from, to, status,
+    } = req.body;
+    const query = `SELECT * FROM pms.items WHERE
+    DATE(createdAt) BETWEEN DATE(:from) AND DATE(:to) ${status !== 'All' ? `AND status=${status}` : ''} ORDER BY ${orderBy}`;
+
+    const data = await db.sequelize.query(query,
+      {
+        replacements: { from, to, status },
+        logging: console.log,
+        type: db.sequelize.QueryTypes.SELECT,
+      });
+
+
+    res.status(200).json(data);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
+
 module.exports = router;
