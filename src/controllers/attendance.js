@@ -6,6 +6,7 @@ const router = express.Router();
 const checkAuth = require('../middleware/auth');
 const db = require('../../models');
 
+const { Op } = db.sequelize;
 router.post('/', checkAuth, async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
@@ -14,7 +15,7 @@ router.post('/', checkAuth, async (req, res) => {
       where: {
         userId: req.body.userId,
         attendanceDate: req.body.attendanceDate,
-        site: req.body.site,
+        // site: req.body.site,
       },
     });
 
@@ -84,13 +85,28 @@ router.get('/:id', checkAuth, async (req, res) => {
 router.put('/:id', checkAuth, async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
+    const isExists = await db.attendance.findOne({
+      userId: req.body.userId,
+      attendanceDate: req.body.attendanceDate,
+      id: {
+        [Op.ne]: req.params.id,
+      },
+
+    });
+
+    if (isExists) {
+      await transaction.commit();
+      return res.status(422).json('Already marked for this user!');
+    }
+
+
     await db.attendance.update(req.body, {
       where: {
         id: req.params.id,
       },
-
       transaction,
     });
+
 
     // ADD AUDIT
     await db.audit.create({
@@ -133,6 +149,31 @@ router.delete('/:id', checkAuth, async (req, res) => {
   } catch (error) {
     await transaction.rollback();
 
+    res.sendStatus(500);
+  }
+});
+
+router.post('/report', async (req, res) => {
+  try {
+    const {
+      orderBy, from, to, ids,
+    } = req.body;
+    const query = `SELECT attendances.*,CONCAT(users.title,' ',users.firstName,
+    ' ',users.lastName) AS fullName FROM pms.attendances INNER JOIN users ON 
+    attendances.userId = users.id WHERE DATE(attendances.createdAt) BETWEEN DATE(:from) AND DATE(:to)
+    AND users.id IN (:ids) ORDER BY ${orderBy}`;
+
+    const data = await db.sequelize.query(query,
+      {
+        replacements: { from, to, ids },
+        logging: console.log,
+        type: db.sequelize.QueryTypes.SELECT,
+      });
+
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.log(error);
     res.sendStatus(500);
   }
 });
